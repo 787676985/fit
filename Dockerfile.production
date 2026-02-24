@@ -1,0 +1,24 @@
+# FitPlan Pro - 生产运行镜像（无需构建）
+# 直接运行已构建好的代码
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 安装bun运行时
+RUN npm install -g bun
+
+# 复制已构建好的代码
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
+
+# 暴露端口
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
+
+# 直接启动，无需安装依赖
+CMD ["node", "server.js"]

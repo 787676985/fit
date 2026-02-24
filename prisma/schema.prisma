@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String
+  role         String   @default("user") // user, admin
+  
+  // 健身数据
+  height       Float    @default(170)
+  weight       Float    @default(70)
+  targetWeight Float    @default(60)
+  age          Int      @default(25)
+  gender       String   @default("male")
+  startDate    String   @default("")
+  motivation   String   @default("")
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // 关联
+  checkIns     CheckIn[]
+  supervisors  Supervisor[]
+  messages     Message[]
+}
+
+// 打卡记录表
+model CheckIn {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String
+  exercise  Boolean  @default(false)
+  diet      Boolean  @default(false)
+  water     Boolean  @default(false)
+  sleep     Boolean  @default(false)
+  weight    Float?
+  note      String   @default("")
+  mood      String   @default("good")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+}
+
+// 监督者表
+model Supervisor {
+  id           String   @id @default(cuid())
+  userId       String   // 被监督的用户
+  name         String
+  relationship String
+  avatar       String   @default("👤")
+  joinedDate   String
+  lastViewDate String
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 监督消息表
+model Message {
+  id             String   @id @default(cuid())
+  userId         String   // 接收消息的用户
+  supervisorId   String
+  supervisorName String
+  message        String
+  type           String   // encourage, remind, celebrate
+  
+  createdAt      DateTime @default(now())
+  
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
