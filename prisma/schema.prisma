@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./db/custom.db"
+  url      = "file:/app/db/custom.db"
 }
 
 // 用户表
@@ -18,7 +18,6 @@ model User {
   name         String
   role         String   @default("user")
   
-  // 健身数据
   height       Float    @default(170)
   weight       Float    @default(70)
   targetWeight Float    @default(60)
@@ -30,7 +29,6 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   
-  // 关联
   checkIns     CheckIn[]
   supervisors  Supervisor[]
   messages     Message[]
