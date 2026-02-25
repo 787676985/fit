@@ -332,7 +332,7 @@ const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
   try {
     const saved = localStorage.getItem(key)
     if (saved) {
-      return JSON.parse(saved)
+      return JSON.parse(saved) as T
     }
   } catch (e) {
     console.error('Failed to load from storage:', e)
