@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import AuthPage from '@/components/AuthPage'
+import LoginPage from '@/components/LoginPage'
 import { 
   Activity, 
   Apple, 
@@ -353,8 +353,7 @@ const saveToStorage = <T,>(key: string, value: T) => {
 export default function Home() {
   // 认证状态 - 使用useEffect初始化避免SSR问题
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [token, setToken] = useState<string | null>(null)
-  const [authUser, setAuthUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   
   const [userData, setUserData] = useState<UserData>(defaultUserData)
@@ -381,17 +380,25 @@ export default function Home() {
   
   // 初始化 - 只在客户端执行
   useEffect(() => {
-    const savedToken = localStorage.getItem('token')
-    const savedUser = localStorage.getItem('user')
+    const savedUser = localStorage.getItem('fitplan_current_user')
     
-    if (savedToken && savedUser) {
-      setToken(savedToken)
-      setAuthUser(JSON.parse(savedUser))
+    if (savedUser) {
+      const user = JSON.parse(savedUser)
+      setCurrentUser(user)
+      setUserData({
+        height: user.height || 170,
+        weight: user.weight || 70,
+        targetWeight: user.targetWeight || 60,
+        age: user.age || 25,
+        gender: user.gender || 'male',
+        startDate: new Date().toISOString().split('T')[0],
+        name: user.name || '用户',
+        motivation: ''
+      })
       setIsAuthenticated(true)
     }
     
     // 加载其他数据
-    setUserData(loadFromStorage(STORAGE_KEYS.USER_DATA, defaultUserData))
     setCheckIns(loadFromStorage(STORAGE_KEYS.CHECK_INS, []))
     setSupervisors(loadFromStorage(STORAGE_KEYS.SUPERVISORS, []))
     setSupervisorMessages(loadFromStorage(STORAGE_KEYS.MESSAGES, []))
@@ -433,18 +440,25 @@ export default function Home() {
   }, [supervisorMessages, isAuthenticated])
   
   // 登录成功回调
-  const handleLogin = (user: any, newToken: string) => {
-    setToken(newToken)
-    setAuthUser(user)
+  const handleLogin = (user: any) => {
+    setCurrentUser(user)
+    setUserData({
+      height: user.height || 170,
+      weight: user.weight || 70,
+      targetWeight: user.targetWeight || 60,
+      age: user.age || 25,
+      gender: user.gender || 'male',
+      startDate: new Date().toISOString().split('T')[0],
+      name: user.name || '用户',
+      motivation: ''
+    })
     setIsAuthenticated(true)
   }
   
   // 登出
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setToken(null)
-    setAuthUser(null)
+    localStorage.removeItem('fitplan_current_user')
+    setCurrentUser(null)
     setIsAuthenticated(false)
   }
   
@@ -464,7 +478,7 @@ export default function Home() {
   
   // 未登录显示登录页面
   if (!isAuthenticated) {
-    return <AuthPage onLogin={handleLogin} />
+    return <LoginPage onLogin={handleLogin} />
   }
   
   const bmi = parseFloat(calculateBMI(userData.weight, userData.height))
