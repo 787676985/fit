@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -350,32 +351,16 @@ const saveToStorage = <T,>(key: string, value: T) => {
 }
 
 export default function Home() {
-  // 所有state必须在组件顶层声明
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !!localStorage.getItem('token')
-    }
-    return false
-  })
-  const [token, setToken] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('token')
-    }
-    return null
-  })
-  const [authUser, setAuthUser] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      const user = localStorage.getItem('user')
-      return user ? JSON.parse(user) : null
-    }
-    return null
-  })
-  const [isLoading, setIsLoading] = useState(false)
+  // 认证状态 - 使用useEffect初始化避免SSR问题
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [token, setToken] = useState<string | null>(null)
+  const [authUser, setAuthUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
   
-  const [userData, setUserData] = useState<UserData>(() => loadFromStorage(STORAGE_KEYS.USER_DATA, defaultUserData))
-  const [checkIns, setCheckIns] = useState<CheckInRecord[]>(() => loadFromStorage(STORAGE_KEYS.CHECK_INS, []))
-  const [supervisors, setSupervisors] = useState<Supervisor[]>(() => loadFromStorage(STORAGE_KEYS.SUPERVISORS, []))
-  const [supervisorMessages, setSupervisorMessages] = useState<SupervisorMessage[]>(() => loadFromStorage(STORAGE_KEYS.MESSAGES, []))
+  const [userData, setUserData] = useState<UserData>(defaultUserData)
+  const [checkIns, setCheckIns] = useState<CheckInRecord[]>([])
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([])
+  const [supervisorMessages, setSupervisorMessages] = useState<SupervisorMessage[]>([])
   const [currentTab, setCurrentTab] = useState('overview')
   const [selectedDay, setSelectedDay] = useState(1)
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
@@ -384,22 +369,45 @@ export default function Home() {
   const [copied, setCopied] = useState(false)
   const [newSupervisorName, setNewSupervisorName] = useState('')
   const [newSupervisorRelation, setNewSupervisorRelation] = useState('')
-  const [todayCheckIn, setTodayCheckIn] = useState<CheckInRecord>(() => {
-    const saved = loadFromStorage<CheckInRecord[]>(STORAGE_KEYS.CHECK_INS, [])
-    const today = new Date().toISOString().split('T')[0]
-    const todayRecord = saved.find(r => r.date === today)
-    return todayRecord || {
-      date: today,
-      exercise: false,
-      diet: false,
-      water: false,
-      sleep: false,
-      note: '',
-      mood: 'good'
-    }
+  const [todayCheckIn, setTodayCheckIn] = useState<CheckInRecord>({
+    date: new Date().toISOString().split('T')[0],
+    exercise: false,
+    diet: false,
+    water: false,
+    sleep: false,
+    note: '',
+    mood: 'good'
   })
   
-  // 持久化存储 - 当数据变化时自动保存（必须在条件语句之前）
+  // 初始化 - 只在客户端执行
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
+    
+    if (savedToken && savedUser) {
+      setToken(savedToken)
+      setAuthUser(JSON.parse(savedUser))
+      setIsAuthenticated(true)
+    }
+    
+    // 加载其他数据
+    setUserData(loadFromStorage(STORAGE_KEYS.USER_DATA, defaultUserData))
+    setCheckIns(loadFromStorage(STORAGE_KEYS.CHECK_INS, []))
+    setSupervisors(loadFromStorage(STORAGE_KEYS.SUPERVISORS, []))
+    setSupervisorMessages(loadFromStorage(STORAGE_KEYS.MESSAGES, []))
+    
+    // 加载今日打卡
+    const savedCheckIns = loadFromStorage<CheckInRecord[]>(STORAGE_KEYS.CHECK_INS, [])
+    const today = new Date().toISOString().split('T')[0]
+    const todayRecord = savedCheckIns.find(r => r.date === today)
+    if (todayRecord) {
+      setTodayCheckIn(todayRecord)
+    }
+    
+    setIsLoading(false)
+  }, [])
+  
+  // 持久化存储
   useEffect(() => {
     if (isAuthenticated) {
       saveToStorage(STORAGE_KEYS.USER_DATA, userData)
@@ -419,7 +427,9 @@ export default function Home() {
   }, [supervisors, isAuthenticated])
   
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.MESSAGES, supervisorMessages)
+    if (isAuthenticated) {
+      saveToStorage(STORAGE_KEYS.MESSAGES, supervisorMessages)
+    }
   }, [supervisorMessages, isAuthenticated])
   
   // 登录成功回调
