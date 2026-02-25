@@ -1,40 +1,14 @@
 services:
-  # MySQL 数据库
-  mysql:
-    image: mysql:8.0
-    container_name: fitplan-mysql
-    restart: unless-stopped
-    environment:
-      - MYSQL_ROOT_PASSWORD=fitplan_root_2024
-      - MYSQL_DATABASE=fitplan
-      - MYSQL_USER=fitplan
-      - MYSQL_PASSWORD=fitplan_pass_2024
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # FitPlan 应用
   fitplan-app:
     image: oven/bun:1-alpine
     container_name: fitplan-pro
     restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
     ports:
       - "3019:3000"
     working_dir: /app
     volumes:
       - /tmp/zfsv3/nvme12/17715505757/data/容器/fitplan/data:/app
-    command: /bin/sh -c "apk add --no-cache git; if [ ! -f package.json ]; then git clone https://github.com/787676985/fit.git .; fi; if [ ! -d node_modules ]; then bun install; fi; sleep 5; bunx prisma db push --skip-generate; if [ ! -f .next/standalone/server.js ]; then bun run build; fi; node .next/standalone/server.js"
+    command: /bin/sh -c "apk add --no-cache git && git clone --depth 1 https://github.com/787676985/fit.git . && bun install && mkdir -p db && bunx prisma db push && bun run build && node .next/standalone/server.js"
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_URL=mysql://fitplan:fitplan_pass_2024@mysql:3306/fitplan
-
-volumes:
-  mysql-data:

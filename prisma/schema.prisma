@@ -1,13 +1,13 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file
+// SQLite 数据库配置
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./db/custom.db"
 }
 
 // 用户表
@@ -16,7 +16,7 @@ model User {
   email        String   @unique
   password     String
   name         String
-  role         String   @default("user") // user, admin
+  role         String   @default("user")
   
   // 健身数据
   height       Float    @default(170)
@@ -34,8 +34,6 @@ model User {
   checkIns     CheckIn[]
   supervisors  Supervisor[]
   messages     Message[]
-
-  @@index([email])
 }
 
 // 打卡记录表
@@ -48,7 +46,7 @@ model CheckIn {
   water     Boolean  @default(false)
   sleep     Boolean  @default(false)
   weight    Float?
-  note      String   @default("") @db.Text
+  note      String   @default("")
   mood      String   @default("good")
   
   createdAt DateTime @default(now())
@@ -57,13 +55,12 @@ model CheckIn {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@unique([userId, date])
-  @@index([userId, date])
 }
 
 // 监督者表
 model Supervisor {
   id           String   @id @default(cuid())
-  userId       String   // 被监督的用户
+  userId       String
   name         String
   relationship String
   avatar       String   @default("👤")
@@ -74,22 +71,18 @@ model Supervisor {
   updatedAt    DateTime @updatedAt
   
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
 
 // 监督消息表
 model Message {
   id             String   @id @default(cuid())
-  userId         String   // 接收消息的用户
+  userId         String
   supervisorId   String
   supervisorName String
-  message        String   @db.Text
-  type           String   // encourage, remind, celebrate
+  message        String
+  type           String
   
   createdAt      DateTime @default(now())
   
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
