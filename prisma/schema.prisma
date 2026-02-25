@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -34,6 +34,8 @@ model User {
   checkIns     CheckIn[]
   supervisors  Supervisor[]
   messages     Message[]
+
+  @@index([email])
 }
 
 // 打卡记录表
@@ -46,7 +48,7 @@ model CheckIn {
   water     Boolean  @default(false)
   sleep     Boolean  @default(false)
   weight    Float?
-  note      String   @default("")
+  note      String   @default("") @db.Text
   mood      String   @default("good")
   
   createdAt DateTime @default(now())
@@ -55,6 +57,7 @@ model CheckIn {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@unique([userId, date])
+  @@index([userId, date])
 }
 
 // 监督者表
@@ -71,6 +74,8 @@ model Supervisor {
   updatedAt    DateTime @updatedAt
   
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // 监督消息表
@@ -79,10 +84,12 @@ model Message {
   userId         String   // 接收消息的用户
   supervisorId   String
   supervisorName String
-  message        String
+  message        String   @db.Text
   type           String   // encourage, remind, celebrate
   
   createdAt      DateTime @default(now())
   
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
